@@ -1,13 +1,15 @@
 # coding: UTF-8
 import numpy as np
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import shutil
 from sklearn import metrics
 import time
+import wandb
 from utils import get_time_dif
 from pytorch_pretrained.optimization import BertAdam
-
 
 # 权重初始化，默认xavier
 def init_network(model, method='xavier', exclude='embedding', seed=123):
@@ -30,6 +32,8 @@ def init_network(model, method='xavier', exclude='embedding', seed=123):
 
 def train(config, model, train_iter, dev_iter, test_iter):
     start_time = time.time()
+    wandb.init(project="Chinese-Text-Classification", name=config.model_name)
+    wandb.watch(model, log_freq=100)
     model.train()
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -63,12 +67,17 @@ def train(config, model, train_iter, dev_iter, test_iter):
                 if dev_loss < dev_best_loss:
                     dev_best_loss = dev_loss
                     torch.save(model.state_dict(), config.save_path)
+
+                    #wandb.save(config.save_path)
+                    shutil.copy(config.save_path, os.path.join(wandb.run.dir, "file.h5"))
+
                     improve = '*'
                     last_improve = total_batch
                 else:
                     improve = ''
                 time_dif = get_time_dif(start_time)
                 msg = 'Iter: {0:>6},  Train Loss: {1:>5.2},  Train Acc: {2:>6.2%},  Val Loss: {3:>5.2},  Val Acc: {4:>6.2%},  Time: {5} {6}'
+                wandb.log({"train_acc":train_acc, "dev_acc":dev_acc, "dev_loss":dev_loss})
                 print(msg.format(total_batch, loss.item(), train_acc, dev_loss, dev_acc, time_dif, improve))
                 model.train()
             total_batch += 1

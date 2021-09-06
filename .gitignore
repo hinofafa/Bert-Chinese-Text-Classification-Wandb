@@ -1,0 +1,12 @@
+*.bin
+*.tar
+*.json
+*.txt
+*.zip
+*.bin
+*.ckpt
+
+wandb/*
+!wandb/.gitkeep
+
+.ipynb_checkpoints/*
